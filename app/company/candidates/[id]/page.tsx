@@ -302,7 +302,7 @@ export default function CandidateProfilePage({
         );
       }
 
-      await loadCandidateMessages();
+      await loadCandidateMessages(id);
       setLoading(false);
     }
 
@@ -380,29 +380,58 @@ export default function CandidateProfilePage({
       return;
     }
 
-    const { error } = await supabase
-      .from("candidate_messages")
+    const { data: conversation, error: conversationError } = await supabase
+      .from("conversations")
+      .upsert(
+        {
+          candidate_id: candidateId,
+          company_id: companyData.id,
+        },
+        {
+          onConflict: "candidate_id,company_id",
+        }
+      )
+      .select("id")
+      .single();
+
+    if (conversationError || !conversation) {
+      console.error(
+        "PROOF conversation creation error:",
+        conversationError
+      );
+      setSendingMessage(false);
+      return;
+    }
+
+    const { error: messageError } = await supabase
+      .from("messages")
       .insert({
-        company_id: companyData.id,
-        candidate_id: candidateId,
+        conversation_id: conversation.id,
         sender_id: user.id,
         message,
+        is_read: false,
       });
 
-    if (!error) {
+    if (!messageError) {
       setMessageText("");
       setMessageSent(true);
+      await loadCandidateMessages();
+    } else {
+      console.error(
+        "PROOF message send error:",
+        messageError
+      );
     }
 
     setSendingMessage(false);
   }
 
-  async function loadCandidateMessages() {
+  async function loadCandidateMessages(candidateIdToLoad: string) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) return;
+    if (!user || !candidateIdToLoad) return;
 
     const { data: companyData } = await supabase
       .from("companies")
@@ -413,12 +442,40 @@ export default function CandidateProfilePage({
 
     if (!companyData) return;
 
-    const { data } = await supabase
-      .from("candidate_messages")
+    const { data: conversation, error: conversationError } =
+      await supabase
+        .from("conversations")
+        .select("id")
+        .eq("company_id", companyData.id)
+        .eq("candidate_id", candidateIdToLoad)
+        .maybeSingle();
+
+    if (conversationError) {
+      console.error(
+        "PROOF conversation load error:",
+        conversationError
+      );
+      return;
+    }
+
+    if (!conversation) {
+      setCandidateMessages([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("messages")
       .select("id, message, sender_id, created_at")
-      .eq("company_id", companyData.id)
-      .eq("candidate_id", candidateId)
+      .eq("conversation_id", conversation.id)
       .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error(
+        "PROOF candidate messages load error:",
+        error
+      );
+      return;
+    }
 
     setCandidateMessages(data ?? []);
   }
