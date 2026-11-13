@@ -415,7 +415,7 @@ export default function CandidateProfilePage({
     if (!messageError) {
       setMessageText("");
       setMessageSent(true);
-      await loadCandidateMessages();
+      await loadCandidateMessages(candidateId);
     } else {
       console.error(
         "PROOF message send error:",
