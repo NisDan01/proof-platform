@@ -21,3 +21,6 @@ export type { AssessmentQuestion } from "./assessment";
 export type { AssessmentResult } from "./assessment";
 export type { CertificationPolicy } from "./assessment";
 export type { AssessmentDifficulty } from "./assessment";
+
+export { qualityNormalizeText, qualityNormalizeSearchQuery, qualityValidateScore, qualityGetScoreBand, qualityCalculateWeightedScore, qualityBuildPagination, qualityEscapeCsvCell, qualityBuildCsv, qualitySummarizeIssues, qualityCompareScores, qualityCreateResult, qualityCreateRecordKey, qualityCalculatePassRate, qualityBuildScoreResult } from "./quality";
+export type { QualitySeverity, QualityIssue, QualityResult, QualityPagination, QualityScoreInput, QualityScoreResult } from "./quality";
